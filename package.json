@@ -1,0 +1,15 @@
+{
+  "name": "mypassword",
+  "version": "1.0.0",
+  "description": "this is password manager app it remembers all your passwords by using master password securely",
+  "main": "index.js",
+  "scripts": {
+    "test": "start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "mypassword"
+  },
+  "author": "kamlesh koli",
+  "license": "ISC"
+}
