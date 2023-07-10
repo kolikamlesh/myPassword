@@ -9,11 +9,11 @@ insertForm.addEventListener('submit', async (event) => {
 	event.preventDefault();
 	let input = insertForm.elements;
 	let record = {
-		title: input[0].value,
-		login: encrypt(input[1].value),
-		password: encrypt(input[2].value),
-		websiteAddress: encrypt(input[3].value),
-		note: input[4].value,
+		title: encode( input[0].value),
+		login: encode( encrypt(input[1].value)),
+		password: encode( encrypt(input[2].value)),
+		websiteAddress: encode( encrypt(input[3].value)),
+		note: encode( input[4].value),
 		username: 'NA'
 	};
 
@@ -33,6 +33,40 @@ insertForm.addEventListener('submit', async (event) => {
 		console.log(error);
 	}
 });
+
+// show decrypted secret
+window.decryptSecret = async function (id) {
+	let rwForm = document.getElementById('update-secret');
+	document.getElementById('record-id').setAttribute("data-content", id);
+	try {
+		let secret = await getRecordById(id);
+		var e = rwForm.elements;
+		e[0].value = ( await decrypt( decode(secret.login), true)) || 'NA'
+		e[1].value = ( await decrypt( decode(secret.password), true)) || 'NA'
+		e[2].value = ( await decrypt( decode(secret.websiteAddress), true)) || 'NA'
+		e[3].value = decode(secret.note);
+		document.getElementById('record-title').innerHTML = `<span class="material-icons" style="vertical-align: middle; opacity: 0.5; color: black">text_snippet</span>` + decode(secret.title);
+
+		if(e[0].value == 'NA'){
+			e[3].value = 'TRY DIFFERENT MASTER KEY'
+			e[3].style.color = 'red'
+			document.getElementById('secretUpdate').disabled = true
+			document.getElementById('record-title').innerHTML = `<span class="material-icons" style="vertical-align: middle; opacity: 0.5">text_snippet</span>` + 'unable to get record !';
+			document.getElementById('record-title').style.color = 'red';
+		}
+		else{
+			document.getElementById('record-title').style.color = 'black';
+			document.getElementById('secretUpdate').disabled = false
+			e[3].style.color = 'black'
+		}
+		viewVault();
+
+		$('#update-secret-modal').modal('show');
+	} catch (error) {
+		show(error, "danger", "system-msg");
+		console.log(error);
+	}
+}
 
 function getUsername() {
 	let username = document.getElementById('username').innerText;
@@ -102,15 +136,15 @@ window.viewVault = async function () {
 			all += `<tr class="table-row">
 				<td onclick="decryptSecret(this.id)" id="${secrets[i].id}"  style="cursor: pointer;"> 
 				<span class="material-icons" style="vertical-align: bottom;">text_snippet</span>
-				${secrets[i].title}</td>
+				${decode(secrets[i].title)}</td>
 				<td onclick="decryptSecret(this.id)" id="${secrets[i].id}"  style="cursor: pointer;">${secrets[i].lastModifiedAt}</td>
 
 				<td scope="row" onclick="decryptSecret(this.id)" id="${secrets[i].id}"  style="cursor: pointer;">
-					${secrets[i].note}
+					${decode(secrets[i].note)}
 				</td>
 
 				<td  style="cursor: pointer;">
-				<a class="dropdown-item" onclick="deleteRecord(this.name);" data-toggle="modal" data-target="#confirm-delete" name=${secrets[i].id}><i class="material-icons" style="color:red">delete</i></a>
+				<a class="dropdown-item" onclick="deleteRecord(this.name);" data-toggle="modal" data-target="#confirm-delete" name=${secrets[i].id}><i class="material-icons" style="color:black">delete</i></a>
                 </td>
 
 			</tr>`;
@@ -124,39 +158,6 @@ window.viewVault = async function () {
 	}
 }
 
-// show decrypted secret
-window.decryptSecret = async function (id) {
-	let rwForm = document.getElementById('update-secret');
-	document.getElementById('record-id').setAttribute("data-content", id);
-	try {
-		let secret = await getRecordById(id);
-		var e = rwForm.elements;
-		e[0].value = await decrypt(secret.login, true) || 'NA'
-		e[1].value = await decrypt(secret.password, true) || 'NA'
-		e[2].value = await decrypt(secret.websiteAddress, true) || 'NA'
-		e[3].value = secret.note;
-		document.getElementById('record-title').innerHTML = `<span class="material-icons" style="vertical-align: middle; opacity: 0.5; color: black">text_snippet</span>` + secret.title;
-
-		if(e[0].value == 'NA'){
-			e[3].value = 'TRY DIFFERENT MASTER KEY'
-			e[3].style.color = 'red'
-			document.getElementById('record-title').innerHTML = `<span class="material-icons" style="vertical-align: middle; opacity: 0.5">text_snippet</span>` + 'unable to get record !';
-			document.getElementById('record-title').style.color = 'red';
-		}
-		else{
-			document.getElementById('record-title').style.color = 'black';
-			e[3].style.color = 'black'
-		}
-		viewVault();
-
-		$('#update-secret-modal').modal('show');
-	} catch (error) {
-		show(error, "danger", "system-msg");
-		console.log(error);
-	}
-}
-
-// update only modified fields...
 async function getAllRecord() {
 	let username = getUsername();
 	return (await makeRequest({
@@ -172,6 +173,41 @@ window.deleteRecord = (id) => {
     makeRequest({method: "DELETE", url: `/secret/${id}`});
 	viewVault()
 }
+
+window.getDataEncoding = (data) => {
+    const enc = new TextEncoder();
+    return enc.encode(data);
+}
+
+window.getDataDecoding = (data) => {
+    const dec = new TextDecoder('utf-8');
+    return dec.decode(new Uint8Array(data));
+}
+
+window.Uint8ArrayToBase64 = (data) => {
+    return window.btoa(String.fromCharCode.apply(null, data));
+}   
+
+window.base64ToUint8Array = (base64) => {
+    var binary_string = window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return new Uint8Array(bytes.buffer);
+}
+
+let encode = (data) => {
+    
+    return Uint8ArrayToBase64( getDataEncoding( data))
+}
+
+let decode = (data) => {
+    
+    return getDataDecoding( base64ToUint8Array( data))
+}
+
 
 function timeSince(date) {
 	let val;

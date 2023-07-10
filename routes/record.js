@@ -11,7 +11,6 @@ router.post('/record', (req, res) => {
         try{
             res.json(result)
         }
-
         catch(error){
             console.log(error)
         }
@@ -21,9 +20,11 @@ router.post('/record', (req, res) => {
 
 router.post('/add', [auth], async(req, res)=> {
     let query = 'insert into record set ?'
-
     req.body.secret.lastmodifiedat = new Date().toString()
-    connection.query(query, req.body.secret, (err) => {
+
+    let record = req.body.secret
+
+    connection.query(query, record, (err) => {
         if(err){
             console.log(err)
         }
@@ -38,7 +39,6 @@ router.delete('/:id', (req, res) => {
         if(err){
             console.log(err)
         }
-
         else{
             res.status(201).json({ok: true, message: 'deleted successfully!'});
         }
